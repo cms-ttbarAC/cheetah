@@ -10,7 +10,7 @@ Texas A&M University
 Common tools needed
 
 */
-#include "Analysis/cheetah/interface/tools.h"
+#include "Analysis/CyMiniAna/interface/tools.h"
 
 namespace cma{
 
@@ -18,20 +18,16 @@ namespace cma{
 void check_file(const std::string & filename) {
     /* Check that file exists */
     std::ifstream f = open_file(filename);
-
     return;
 }
 
-
 void check_file(const std::ifstream& file, const std::string& fname){
     /* Check that file exists */
-
     if (!file) {
         cma::ERROR("TOOLS : File does not exist:       "+fname);
         cma::ERROR("TOOLS : Exiting. ");
         assert(file);
     }
-
     return;
 }
 
@@ -39,7 +35,6 @@ std::ifstream open_file(const std::string &filename) {
     /* Open file */
     std::ifstream ifile(filename.c_str());
     check_file(ifile,filename);
-
     return ifile;
 }
 
@@ -143,46 +138,6 @@ void getListOfKeys( TFile* file, std::vector<std::string>& fileKeys ){
 }
 
 
-void getSampleWeights( std::string metadata_file,
-                       std::map<std::string,Sample>& samples){
-    /* Calculate XSection, KFactor, NEvents, and sum of weights (AMI) */
-    cma::INFO("TOOLS : Get sample weights (including sum of weights)");
-
-    std::ifstream in( metadata_file.c_str());
-    if (!in) cma::WARNING("TOOLS : File does not exist: "+metadata_file);
-
-    std::string line;
-    samples.clear();
-    while( std::getline(in,line) ) {
-
-        if (!line.empty() && line[0]!='#') {
-            std::string stype("");
-            std::string dsid("");
-            unsigned int NEvents(1);
-            float xSect(1);
-            float kFact(1);
-            float sumWeights(1);
-
-            std::istringstream istr(line);
-            istr >> stype >> dsid >> xSect >> sumWeights >> kFact >> NEvents;
-
-            Sample s;
-            s.sampleType     = stype;
-            s.primaryDataset = dsid;
-            s.XSection       = xSect;
-            s.KFactor        = kFact;
-            s.NEvents        = NEvents;
-            s.sumOfWeights   = sumWeights;
-
-            samples[dsid] = s;
-        }
-    }
-    in.close();
-
-    return;
-}
-
-
 bool str2bool( const std::string value ){
     /* Turn string into boolean */
     bool valueBoolean(false);
@@ -204,20 +159,6 @@ std::string vectorToStr( const std::vector<std::string> &vec ){
         str_list += str + std::string(",");
     str_list.pop_back(); // remove last comma
     return str_list;
-}
-
-
-unsigned int setRandomNumberSeeds(const Lepton& lepton, const Lepton& antiLepton, 
-                                  const Jet& jet1, const Jet& jet2) {
-    /* 
-       Asymmetric treatment of both jets, and also both leptons, 
-       to ensure different seed for each combination in dileptonTtbarReco
-    */
-    unsigned int seed = static_cast<int>( 1.e6 * (jet1.p4.Pt()/jet2.p4.Pt()) * 
-                                          std::sin((lepton.p4.Pt() + 2.*antiLepton.p4.Pt()) * 1.e6) );
-    gRandom->SetSeed(seed);
-
-    return seed;
 }
 
 
@@ -302,7 +243,7 @@ void HELP(const std::string& runExecutable){
     /* HELP message (pass 'runExecutable' in case you are running from some 
        script like 'skim', 'run', or a custom macro)
     */
-    std::cout << "\n   ** cheetah ** " << std::endl;
+    std::cout << "\n   ** CyMiniAna ** " << std::endl;
     std::cout << "   --------------- " << std::endl;
     std::cout << "   Framework to perform event selection, write-out" << std::endl;
     std::cout << "   a few histograms or efficiencies, and make plots.\n" << std::endl;
@@ -316,5 +257,4 @@ void HELP(const std::string& runExecutable){
 
 } // end namespace
 
-// the end
-
+// THE END

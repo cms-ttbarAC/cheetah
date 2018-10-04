@@ -47,21 +47,11 @@ class eventSelection{
     virtual bool applySelection();
 
     // -- Selections put into functions (easily reference them in other cuts)
-    // DNN selection
-    bool allHadDNNSelection(float& cutflow_bin);
-
-    // Allhadronic selection
-    bool zeroLeptonSelection(float& cutflow_bin);
-
-    // Single lepton selections
-    bool oneLeptonSelection(float& cutflow_bin, std::string selection="");
-    bool ejetsSelection( float& cutflow_bin, std::string selection="");
-    bool mujetsSelection(float& cutflow_bin, std::string selection="");
+    bool mcDNNSelection(float& cutflow_bin);
     bool cwolaSelection( float& cutflow_bin);
-    bool afbSelection(   float& cutflow_bin);
-
-    // Dilepton selections
-    bool twoLeptonSelection(float& cutflow_bin);
+    bool oneLeptonSelection(float& cutflow_bin, std::string selection="");
+    bool ejetsSelection( float& cutflow_bin, std::string selection="ejets");
+    bool mujetsSelection(float& cutflow_bin, std::string selection="mujets");
 
     // Helper functions: Provide external access to information in this class
     void fillCutflows(float& cutflow_bin);                                // fill cutflow histograms
@@ -69,16 +59,7 @@ class eventSelection{
     virtual std::vector<std::string> cutNames(){ return m_cutflowNames;}  // Return a vector of the cut names 
     virtual unsigned int numberOfCuts(){ return m_numberOfCuts;}          // Return the number of cuts
 
-
   protected:
-
-    // struct for holding information on a 'cut'
-    //  ideally this could be extended so that cuts are parsed & written by code, not humans!
-    struct Cut{
-        std::string name;       // name of cut
-        std::string comparison; // sign of cut (<,<=,>,>=,==,!=)
-        float value;            // float value -- cast to int if needed
-    };
 
     configuration* m_config;
 
@@ -97,13 +78,8 @@ class eventSelection{
 
     // booleans for each selection
     bool m_dummySelection;
-    bool m_isZeroLeptonAnalysis;
-    bool m_isOneLeptonAnalysis;
-    bool m_isTwoLeptonAnalysis;
-
     bool m_isCWoLaAnalysis;
-    bool m_allHadDNNSelection;
-    bool m_isAFBAnalysis;
+    bool m_mcDNNSelection;
 
     // physics information
     bool m_valid;
@@ -118,10 +94,8 @@ class eventSelection{
     float m_ht;
     float m_st;
 
-    std::vector<std::string> m_zeroLeptonTriggers;
     std::vector<std::string> m_ejetsTriggers;
     std::vector<std::string> m_mujetsTriggers;
-    std::vector<std::string> m_dileptonTriggers;
 
     std::map<std::string,unsigned int> m_triggers;
     std::map<std::string,unsigned int> m_filters;
@@ -133,9 +107,7 @@ class eventSelection{
     unsigned int m_NJets;
     unsigned int m_NLjets;
 
-    Ttbar0L m_ttbar0L;
     Ttbar1L m_ttbar1L;
-    Ttbar2L m_ttbar2L;
 };
 
 #endif

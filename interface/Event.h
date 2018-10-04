@@ -30,8 +30,9 @@
 #include "Analysis/cheetah/interface/physicsObjects.h"
 #include "Analysis/cheetah/interface/configuration.h"
 #include "Analysis/cheetah/interface/truthMatching.h"
-#include "Analysis/cheetah/interface/deepLearning.h"
 #include "Analysis/cheetah/interface/ttbarReco.h"
+#include "Analysis/cheetah/interface/neutrinoReco.h"
+#include "Analysis/cheetah/interface/deepLearning.h"
 
 
 // Event Class
@@ -48,19 +49,18 @@ class Event {
     bool isValidRecoEntry() const {return (m_entry > (long long)-1);}
 
     // Execute the event (load information and setup objects)
-    virtual void execute(Long64_t entry);
-    virtual void updateEntry(Long64_t entry);
+    void execute(Long64_t entry);
+    void updateEntry(Long64_t entry);
 
     // Clear stuff;
-    virtual void finalize();
-    virtual void clear();
+    void finalize();
+    void clear();
 
     // Setup physics information
     void initialize_leptons();
+    void initialize_neutrinos();
     void initialize_jets();
     void initialize_ljets();
-    void initialize_eventWeights();
-    void initialize_weights();
     void initialize_kinematics();
     void initialize_truth();
     void initialize_filters();
@@ -70,62 +70,40 @@ class Event {
     std::vector<Lepton> leptons() const {return m_leptons;}
     std::vector<Electron> electrons() const {return m_electrons;}
     std::vector<Muon> muons() const {return m_muons;}
+    std::vector<Neutrino> neutrinos() const {return m_neutrinos;}
     std::vector<Ljet> ljets() const {return m_ljets;}
     std::vector<Jet> jets() const {return m_jets;}
 
-    virtual MET met() const {return m_met;}
-    virtual float HT() const {return m_HT;}
-    virtual float ST() const {return m_ST;}
+    MET met() const {return m_met;}
+    float HT() const {return m_HT;}
+    float ST() const {return m_ST;}
 
     void ttbarReconstruction();
-    virtual void getBtaggedJets( Jet& jet );
-    virtual std::vector<int> btag_jets(const std::string &wkpt) const;
-    virtual std::vector<int> btag_jets() const {return m_btag_jets_default;} // using configured b-tag WP
+    void getBtaggedJets( Jet& jet );
+    std::vector<int> btag_jets(const std::string &wkpt) const;
+    std::vector<int> btag_jets() const {return m_btag_jets_default;} // using configured b-tag WP
 
     // Get truth physics information 
     std::vector<TruthTop> truth() {return m_truth_tops;}
     std::vector<Parton> truth_partons() {return m_truth_partons;}
-    std::vector<Lepton> truth_leptons() const {return m_truth_leptons;}
-    std::vector<Electron> truth_electrons() const {return m_truth_electrons;}
-    std::vector<Muon> truth_muons() const {return m_truth_muons;}
-    std::vector<Ljet> truth_ljets() const {return m_truth_ljets;}
-    std::vector<Jet>  truth_jets() const {return m_truth_jets;}
 
     // Get metadata info
-    virtual unsigned long long eventNumber() {return **m_eventNumber;}
+    unsigned long long eventNumber() {return **m_eventNumber;}
     long long entry() const { return m_entry; }
-//    virtual unsigned int eventNumber() const {return **m_eventNumber;}
-    virtual unsigned int runNumber() const {return **m_runNumber;}
-    virtual unsigned int lumiblock() const {return **m_lumiblock;}
-    virtual std::string treeName() const {return m_treeName;}
-    virtual float xsection() const {return m_xsection;}
-    virtual float kfactor() const {return m_kfactor;}
-    virtual float sumOfWeights() const {return m_sumOfWeights;}
+    unsigned int runNumber() const {return **m_runNumber;}
+    unsigned int lumiblock() const {return **m_lumiblock;}
+    std::string treeName() const {return m_treeName;}
 
     std::map<std::string,unsigned int> filters() const {return m_filters;}
     std::map<std::string,unsigned int> triggers() const {return m_triggers;}
 
     // kinematic reconstruction, ML
     bool customIsolation( Lepton& lep );
-    Ttbar0L ttbar0L() const {return m_ttbar0L;}
     Ttbar1L ttbar1L() const {return m_ttbar1L;}
-    Ttbar2L ttbar2L() const {return m_ttbar2L;}
     void deepLearningPrediction();
 
     // MC info & weights
-    virtual float nominal_weight() const {return m_nominal_weight;}
-    float weight_mc();
-    float weight_jvt();
-    float weight_pileup();
-    float weight_lept_eff();
-    float weight_btag();
-    float weight_btag(const std::string &wkpt);
-    virtual double getSystEventWeight(const std::string &syst, const int weightIndex=-1);
-
-    // Get weight systematics
-    virtual std::map<std::string,float > weightSystematicsFloats();
-    virtual std::map<std::string,std::vector<float> > weightSystematicsVectorFloats();
-    virtual std::vector<std::string> listOfWeightSystematics();
+    float nominal_weight() const {return m_nominal_weight;}
 
   protected:
 
@@ -141,54 +119,37 @@ class Event {
     long long m_entry;
     long long m_truth_entry;
 
-    // 0/1/2-lepton analyses
-    bool m_isZeroLeptonAnalysis;
-    bool m_isOneLeptonAnalysis;
-    bool m_isTwoLeptonAnalysis;
-
     // neural network & kinematic reconstruction
     bool m_useJets;
     bool m_useLargeRJets;
     bool m_useLeptons;
+    bool m_useNeutrinos;
     bool m_kinematicReco;
-    bool m_getDNN;
-    bool m_useDNN;
+    bool m_neutrinoReco;
     bool m_DNNinference;
     bool m_DNNtraining;
 
     // External tools
     ttbarReco* m_ttbarRecoTool;            // tool to perform ttbar reconstruction
-    deepLearning* m_deepLearningTool;      // tool to perform deep learning
+    deepLearning* m_cheetahTool;           // tool to perform deep learning on AK8 jets
     truthMatching* m_truthMatchingTool;    // tool to perform truth-matching
+    neutrinoReco* m_neutrinoRecoTool;      // tool to perform neutrino reconsutrction
 
-    Ttbar0L m_ttbar0L;
     Ttbar1L m_ttbar1L;
-    Ttbar2L m_ttbar2L;
 
     // event weight information
     double m_nominal_weight;
-    float m_xsection;
-    float m_kfactor;
-    float m_sumOfWeights;
-    float m_LUMI;
-    std::map<int, float> m_mapXSection; // map DSID to XSection
-    std::map<int, float> m_mapKFactor;  // map DSID to KFactor
-    std::map<int, float> m_mapAMI;      // map DSID to sum of weights
 
     // physics object information
     std::vector<Lepton> m_leptons;
     std::vector<Muon> m_muons;
     std::vector<Electron> m_electrons;
+    std::vector<Neutrino> m_neutrinos;
     std::vector<Ljet> m_ljets;
     std::vector<Jet>  m_jets;
     std::vector<Jet>  m_jets_iso;          // for 2D lepton isolation
 
     // truth physics object information
-    std::vector<Lepton> m_truth_leptons;
-    std::vector<Muon> m_truth_muons;
-    std::vector<Electron> m_truth_electrons;
-    std::vector<Ljet> m_truth_ljets;
-    std::vector<Jet> m_truth_jets;
     std::vector<Parton> m_truth_partons;
     std::vector<TruthTop> m_truth_tops;
     std::map<std::string,int> m_mapOfContainment;
@@ -209,14 +170,6 @@ class Event {
     float m_ST;
     float m_HT_ak8;
     float m_HT_ak4;
-
-    // nominal b-tagging weight maps
-    std::map<std::string, float> m_weight_btag;
-    float m_weight_btag_default;
-    // Maps to keep track of weight systematics
-    std::map<std::string,TTreeReaderValue<float> * > m_weightSystematicsFloats;
-    std::map<std::string,TTreeReaderValue<float> * > m_weightSystematicsVectorFloats;
-    std::vector<std::string> m_listOfWeightSystematics;
 
     std::map<std::string,unsigned int> m_filters;
     std::map<std::string,unsigned int> m_triggers;
@@ -264,6 +217,11 @@ class Event {
     TTreeReaderValue<std::vector<unsigned int>> * m_mu_id_loose;
     TTreeReaderValue<std::vector<unsigned int>> * m_mu_id_medium;
     TTreeReaderValue<std::vector<unsigned int>> * m_mu_id_tight;
+
+    // Reconstructed neutrinos
+    TTreeReaderValue<std::vector<float>> * m_nu_pt;
+    TTreeReaderValue<std::vector<float>> * m_nu_eta;
+    TTreeReaderValue<std::vector<float>> * m_nu_phi;
 
     // large-R jet info
     TTreeReaderValue<float> * m_dnn_score;

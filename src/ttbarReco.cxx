@@ -10,71 +10,18 @@ Texas A&M University
 Tool for building ttbar system
  - all-had:  Two top-tagged AK8
  - l+jets:   1 top-tagged AK8 + 1 leptonic top (AK4+lep+nu)
+ - dilepton: 2 leptonic tops (AK4+lep+nu)
 */
-#include "Analysis/cheetah/interface/ttbarReco.h"
+#include "Analysis/CyMiniAna/interface/ttbarReco.h"
 
 
 ttbarReco::ttbarReco( configuration& cmaConfig ) :
   m_config(&cmaConfig){
-    m_mapContainment = m_config->mapOfPartonContainment();  // containment map (ints and strings)
-    m_targetMap = m_config->mapOfTargetValues();
-
-    m_ttbar0L = {};
     m_ttbar1L = {};
-    m_ttbar2L = {};
   }
 
 ttbarReco::~ttbarReco() {}
 
-
-
-// all-hadronic
-void ttbarReco::execute(std::vector<Ljet>& ljets){
-    /* Build top quarks system 
-       - 2 AK8 jets
-         > highest BEST_t scores
-    */
-    m_ttbar0L = {};
-
-    cma::DEBUG("TTBARRECO : building ttbar with "+std::to_string(ljets.size())+" ak8 candidates");
-
-    if (ljets.size()>2){
-        // pick the 2 AK8 candidates with highest BEST_t scores
-        unsigned int firstAK8(0);
-        unsigned int secondAK8(1);
-
-        float firstBEST_t(-999.);
-        float secondBEST_t(-999.);
-
-        for (const auto& ljet : ljets){
-            if (ljet.BEST_t>firstBEST_t){
-                firstAK8    = ljet.index;
-                firstBEST_t = ljet.BEST_t;
-            }
-            else if (ljet.BEST_t>secondBEST_t){
-                secondAK8    = ljet.index;
-                secondBEST_t = ljet.BEST_t;
-            }
-        } // end loop over ak8 candidates
-
-        // sort by pT
-        Ljet first  = ljets.at(firstAK8);
-        Ljet second = ljets.at(secondAK8);
-
-        if (first.p4.Pt()>second.p4.Pt()){
-            m_ttbar0L.ljets.push_back( first );
-            m_ttbar0L.ljets.push_back( second );
-        }
-        else{
-            m_ttbar0L.ljets.push_back( second );
-            m_ttbar0L.ljets.push_back( first );
-        }
-    }
-    else
-        m_ttbar0L.ljets = ljets;
-
-    return;
-}
 
 
 // single lepton

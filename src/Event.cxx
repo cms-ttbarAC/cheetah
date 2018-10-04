@@ -11,7 +11,7 @@ Event class
 Contains all the objects (& structs) with event information
 -- check header for functions that return member variables
 */
-#include "Analysis/cheetah/interface/Event.h"
+#include "Analysis/CyMiniAna/interface/Event.h"
 
 // constructor
 Event::Event( TTreeReader &myReader, configuration &cmaConfig ) :
@@ -20,25 +20,14 @@ Event::Event( TTreeReader &myReader, configuration &cmaConfig ) :
   m_treeName("SetMe"),
   m_fileName("SetMe"){
     m_isMC     = m_config->isMC();
-    m_useTruth = m_config->useTruth();
-    m_grid     = m_config->isGridFile();             // file directly from EDM->FlatNtuple step
     m_treeName = m_ttree.GetTree()->GetName();       // for systematics
     m_fileName = m_config->filename();               // for accessing file metadata
 
-    // Neural network and kinematic reconstruction information
-    m_isZeroLeptonAnalysis = m_config->isZeroLeptonAnalysis();
-    m_isOneLeptonAnalysis  = m_config->isOneLeptonAnalysis();
-    m_isTwoLeptonAnalysis  = m_config->isTwoLeptonAnalysis();
     m_mapOfContainment     = m_config->mapOfPartonContainment(); // containment map for truth tops matched to jets
 
-    m_useJets       = m_config->useJets();
-    m_useLargeRJets = m_config->useLargeRJets();
-    m_useLeptons    = m_config->useLeptons();
     m_DNNinference  = m_config->DNNinference();            // use DNN to predict values
     m_DNNtraining   = m_config->DNNtraining();             // load DNN features (save/use later)
     m_getDNN        = (m_DNNinference || m_DNNtraining);   // CWoLa
-    m_useDNN        = m_config->useDNN();                  // Access CWoLa from TTree
-    m_kinematicReco = m_config->kinematicReco();           // build the ttbar system
 
     // b-tagging working points
     m_CSVv2L = m_config->CSVv2L();
@@ -78,8 +67,59 @@ Event::Event( TTreeReader &myReader, configuration &cmaConfig ) :
     m_Flag_globalTightHalo2016Filter = new TTreeReaderValue<unsigned int>(m_ttree,"Flag_globalTightHalo2016Filter");
     m_Flag_EcalDeadCellTriggerPrimitiveFilter = new TTreeReaderValue<unsigned int>(m_ttree,"Flag_EcalDeadCellTriggerPrimitiveFilter");
 
-    /** JETS **/
-    if (m_useJets){
+
+    // If 'isMC' -> prepare training with truth-matched AK8 jets
+    // else      -> prepare training with l+jets data events
+    // both scenarios require reco AK8 info
+
+    // large-R Jet information
+    m_ljet_pt     = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8pt");
+    m_ljet_eta    = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8eta");
+    m_ljet_phi    = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8phi");
+    m_ljet_m      = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8mass");
+    m_ljet_SDmass = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8SDmass");
+    m_ljet_tau1   = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8tau1");
+    m_ljet_tau2   = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8tau2");
+    m_ljet_tau3   = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8tau3");
+    m_ljet_area   = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8area");
+    m_ljet_charge = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8charge");
+    m_ljet_chargeSD = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8chargeSD");
+    m_ljet_charge3  = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8charge3");
+    m_ljet_charge10 = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8charge10");
+    m_ljet_subjet0_bdisc    = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet0bDisc");
+    m_ljet_subjet0_deepCSV  = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet0deepCSV");
+    m_ljet_subjet0_charge   = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet0charge");
+    m_ljet_subjet0_charge3  = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet0charge3");
+    m_ljet_subjet0_charge10 = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet0charge10");
+    m_ljet_subjet0_pt   = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet0pt");
+    m_ljet_subjet0_mass = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet0mass");
+    m_ljet_subjet0_tau1 = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet0tau1");
+    m_ljet_subjet0_tau2 = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet0tau2");
+    m_ljet_subjet0_tau3 = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet0tau3");
+    m_ljet_subjet1_bdisc    = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet1bDisc");
+    m_ljet_subjet1_deepCSV  = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet1deepCSV");
+    m_ljet_subjet1_charge   = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet1charge");
+    m_ljet_subjet1_charge3  = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet1charge3");
+    m_ljet_subjet1_charge10 = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet1charge10");
+    m_ljet_subjet1_pt   = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet1pt");
+    m_ljet_subjet1_mass = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet1mass");
+    m_ljet_subjet1_tau1 = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet1tau1");
+    m_ljet_subjet1_tau2 = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet1tau2");
+    m_ljet_subjet1_tau3 = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet1tau3");
+    m_ljet_BEST_class = new TTreeReaderValue<std::vector<int>>(m_ttree,"AK8BEST_class");
+    m_ljet_BEST_t = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8BEST_t");
+    m_ljet_BEST_w = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8BEST_w");
+    m_ljet_BEST_z = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8BEST_z");
+    m_ljet_BEST_h = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8BEST_h");
+    m_ljet_BEST_j = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8BEST_j");
+    m_ljet_uncorrPt = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8uncorrPt");
+    m_ljet_uncorrE  = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8uncorrE");
+    m_ljet_jerSF    = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8jerSF");
+    m_ljet_jerSF_UP = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8jerSF_UP");
+    m_ljet_jerSF_DOWN = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8jerSF_DOWN");
+
+    if (!m_isMC){
+      /** JETS **/
       // small-R jet information
       m_jet_pt  = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK4pt");
       m_jet_eta = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK4eta");
@@ -93,69 +133,13 @@ Event::Event( TTreeReader &myReader, configuration &cmaConfig ) :
       m_jet_jerSF    = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK4jerSF");
       m_jet_jerSF_UP = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK4jerSF_UP");
       m_jet_jerSF_DOWN = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK4jerSF_DOWN");
-    }
 
-    if (m_useLargeRJets){
-      // large-R Jet information
-      m_ljet_pt     = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8pt");
-      m_ljet_eta    = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8eta");
-      m_ljet_phi    = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8phi");
-      m_ljet_m      = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8mass");
-      m_ljet_SDmass = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8SDmass");
-      m_ljet_tau1   = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8tau1");
-      m_ljet_tau2   = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8tau2");
-      m_ljet_tau3   = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8tau3");
-      m_ljet_area   = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8area");
-      m_ljet_charge = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8charge");
-      m_ljet_chargeSD = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8chargeSD");
-      m_ljet_charge3  = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8charge3");
-      m_ljet_charge10 = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8charge10");
-
-      m_ljet_subjet0_bdisc    = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet0bDisc");
-      m_ljet_subjet0_deepCSV  = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet0deepCSV");
-      m_ljet_subjet0_charge   = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet0charge");
-      m_ljet_subjet0_charge3  = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet0charge3");
-      m_ljet_subjet0_charge10 = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet0charge10");
-      m_ljet_subjet0_pt   = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet0pt");
-      m_ljet_subjet0_mass = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet0mass");
-      m_ljet_subjet0_tau1 = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet0tau1");
-      m_ljet_subjet0_tau2 = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet0tau2");
-      m_ljet_subjet0_tau3 = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet0tau3");
-
-      m_ljet_subjet1_bdisc    = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet1bDisc");
-      m_ljet_subjet1_deepCSV  = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet1deepCSV");
-      m_ljet_subjet1_charge   = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet1charge");
-      m_ljet_subjet1_charge3  = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet1charge3");
-      m_ljet_subjet1_charge10 = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet1charge10");
-      m_ljet_subjet1_pt   = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet1pt");
-      m_ljet_subjet1_mass = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet1mass");
-      m_ljet_subjet1_tau1 = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet1tau1");
-      m_ljet_subjet1_tau2 = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet1tau2");
-      m_ljet_subjet1_tau3 = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8subjet1tau3");
-
-      m_ljet_BEST_class = new TTreeReaderValue<std::vector<int>>(m_ttree,"AK8BEST_class");
-      m_ljet_BEST_t = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8BEST_t");
-      m_ljet_BEST_w = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8BEST_w");
-      m_ljet_BEST_z = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8BEST_z");
-      m_ljet_BEST_h = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8BEST_h");
-      m_ljet_BEST_j = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8BEST_j");
-
-      m_ljet_uncorrPt = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8uncorrPt");
-      m_ljet_uncorrE  = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8uncorrE");
-      m_ljet_jerSF    = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8jerSF");
-      m_ljet_jerSF_UP = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8jerSF_UP");
-      m_ljet_jerSF_DOWN = new TTreeReaderValue<std::vector<float>>(m_ttree,"AK8jerSF_DOWN");
-    }
-
-
-    /** LEPTONS **/
-    if (m_useLeptons){
+      /** LEPTONS **/
       m_el_pt  = new TTreeReaderValue<std::vector<float>>(m_ttree,"ELpt");
       m_el_eta = new TTreeReaderValue<std::vector<float>>(m_ttree,"ELeta");
       m_el_phi = new TTreeReaderValue<std::vector<float>>(m_ttree,"ELphi");
       m_el_e   = new TTreeReaderValue<std::vector<float>>(m_ttree,"ELenergy");
       m_el_charge = new TTreeReaderValue<std::vector<float>>(m_ttree,"ELcharge");
-      //m_el_iso = new TTreeReaderValue<std::vector<float>>(m_ttree,"ELiso");
       m_el_id_loose  = new TTreeReaderValue<std::vector<unsigned int>>(m_ttree,"ELlooseID");
       m_el_id_medium = new TTreeReaderValue<std::vector<unsigned int>>(m_ttree,"ELmediumID");
       m_el_id_tight  = new TTreeReaderValue<std::vector<unsigned int>>(m_ttree,"ELtightID");
@@ -172,41 +156,25 @@ Event::Event( TTreeReader &myReader, configuration &cmaConfig ) :
       m_mu_id_loose  = new TTreeReaderValue<std::vector<unsigned int>>(m_ttree,"MUlooseID");
       m_mu_id_medium = new TTreeReaderValue<std::vector<unsigned int>>(m_ttree,"MUmediumID");
       m_mu_id_tight  = new TTreeReaderValue<std::vector<unsigned int>>(m_ttree,"MUtightID");
+
+      m_met_met  = new TTreeReaderValue<float>(m_ttree,"METpt");
+      m_met_phi  = new TTreeReaderValue<float>(m_ttree,"METphi");
+
+      m_HTAK8    = new TTreeReaderValue<float>(m_ttree,"HTak8");
+      m_HTAK4    = new TTreeReaderValue<float>(m_ttree,"HTak4");
     }
-
-    m_met_met  = new TTreeReaderValue<float>(m_ttree,"METpt");
-    m_met_phi  = new TTreeReaderValue<float>(m_ttree,"METphi");
-
-    m_HTAK8    = new TTreeReaderValue<float>(m_ttree,"HTak8");
-    m_HTAK4    = new TTreeReaderValue<float>(m_ttree,"HTak4");
-
-    // set some event weights and access necessary branches
-    m_xsection       = 1.0;
-    m_kfactor        = 1.0;
-    m_sumOfWeights   = 1.0;
-    m_LUMI           = m_config->LUMI();
-
-    Sample ss = m_config->sample();
-
-    // MC information
-    if (m_isMC){
-      //m_weight_mc    = 1;//new TTreeReaderValue<float>(m_ttree,"evt_Gen_Weight");
-      m_xsection     = ss.XSection;
-      m_kfactor      = ss.KFactor;        // most likely =1
-      m_sumOfWeights = ss.sumOfWeights;
-
-      if (m_config->isTtbar()){
-        m_mc_pt  = new TTreeReaderValue<std::vector<float>>(m_ttree,"GENpt");
-        m_mc_eta = new TTreeReaderValue<std::vector<float>>(m_ttree,"GENeta");
-        m_mc_phi = new TTreeReaderValue<std::vector<float>>(m_ttree,"GENphi");
-        m_mc_e   = new TTreeReaderValue<std::vector<float>>(m_ttree,"GENenergy");
-        m_mc_pdgId  = new TTreeReaderValue<std::vector<int>>(m_ttree,"GENid");
-        m_mc_status = new TTreeReaderValue<std::vector<int>>(m_ttree,"GENstatus");
-        m_mc_parent_idx = new TTreeReaderValue<std::vector<int>>(m_ttree,"GENparent_idx");
-        m_mc_child0_idx = new TTreeReaderValue<std::vector<int>>(m_ttree,"GENchild0_idx");
-        m_mc_child1_idx = new TTreeReaderValue<std::vector<int>>(m_ttree,"GENchild1_idx");
-        m_mc_isHadTop = new TTreeReaderValue<std::vector<int>>(m_ttree,"GENisHadTop");
-      }
+    else{
+      // MC information
+      m_mc_pt  = new TTreeReaderValue<std::vector<float>>(m_ttree,"GENpt");
+      m_mc_eta = new TTreeReaderValue<std::vector<float>>(m_ttree,"GENeta");
+      m_mc_phi = new TTreeReaderValue<std::vector<float>>(m_ttree,"GENphi");
+      m_mc_e   = new TTreeReaderValue<std::vector<float>>(m_ttree,"GENenergy");
+      m_mc_pdgId  = new TTreeReaderValue<std::vector<int>>(m_ttree,"GENid");
+      m_mc_status = new TTreeReaderValue<std::vector<int>>(m_ttree,"GENstatus");
+      m_mc_parent_idx = new TTreeReaderValue<std::vector<int>>(m_ttree,"GENparent_idx");
+      m_mc_child0_idx = new TTreeReaderValue<std::vector<int>>(m_ttree,"GENchild0_idx");
+      m_mc_child1_idx = new TTreeReaderValue<std::vector<int>>(m_ttree,"GENchild1_idx");
+      m_mc_isHadTop = new TTreeReaderValue<std::vector<int>>(m_ttree,"GENisHadTop");
 /*
       m_mc_ht = new TTreeReaderValue<float>(m_ttree,"evt_Gen_Ht");
       m_truth_jet_pt  = new TTreeReaderValue<float>(m_ttree,"jetAK4CHS_GenJetPt");
@@ -222,58 +190,20 @@ Event::Event( TTreeReader &myReader, configuration &cmaConfig ) :
 */
     } // end isMC
 
-
     // Truth matching tool
     m_truthMatchingTool = new truthMatching(cmaConfig);
     m_truthMatchingTool->initialize();
 
     // DNN material
-    m_deepLearningTool = new deepLearning(cmaConfig);
-    if (!m_getDNN && m_useDNN)
-        m_dnn_score = new TTreeReaderValue<float>(m_ttree,"ljet_CWoLa");
-
+    m_cheetahTool = new deepLearning(cmaConfig);
 
     // Kinematic reconstruction algorithms
     m_ttbarRecoTool    = new ttbarReco(cmaConfig);
-
-    if (!m_kinematicReco){
-        // Load ttbar variables from file
-        m_leptop_jet  = new TTreeReaderValue<int>(m_ttree, "leptop_jet");
-        m_hadtop_ljet = new TTreeReaderValue<int>(m_ttree, "hadtop_ljet");
-    }
+    m_neutrinoRecoTool = new neutrinoReco(cmaConfig);
 } // end constructor
 
 
 Event::~Event() {}
-
-
-
-void Event::initialize_eventWeights(){
-    /* Create vectors of the systematics that are weights for the nominal events
-       Must be called from the constructor for the access to TTreeReaderValues to work!
-    */
-    std::map<std::string,unsigned int> mapWeightSystematics = m_config->mapOfWeightVectorSystematics();
-
-    m_listOfWeightSystematics = m_config->listOfWeightSystematics();
-
-    m_weightSystematicsFloats.clear();
-    m_weightSystematicsVectorFloats.clear();
-
-    // systematics from the nominal tree that are floats
-    for (const auto& nom_syst : m_listOfWeightSystematics){
-        if (!m_useLeptons && nom_syst.find("leptonSF")!=std::string::npos)
-            continue;
-        m_weightSystematicsFloats[nom_syst] = new TTreeReaderValue<float>(m_ttree,nom_syst.c_str());
-    }
-
-    // systematics from the nominal tree that are vectors
-    for (const auto& syst : mapWeightSystematics)
-        m_weightSystematicsVectorFloats[syst.first] = new TTreeReaderValue<float>(m_ttree,syst.first.c_str());
-
-    return;
-}
-
-
 
 void Event::updateEntry(Long64_t entry){
     /* Update the entry -> update all TTree variables */
@@ -292,13 +222,10 @@ void Event::updateEntry(Long64_t entry){
 
 void Event::clear(){
     /* Clear many of the vectors/maps for each event -- SAFETY PRECAUTION */
-    m_truth_ljets.clear();
-    m_truth_jets.clear();
-    m_truth_leptons.clear();
-
     m_jets.clear();
     m_ljets.clear();
     m_leptons.clear();
+    m_neutrinos.clear();
 
     m_btag_jets.clear();
     m_btag_jets_default.clear();
@@ -322,68 +249,41 @@ void Event::execute(Long64_t entry){
     // Reset many event-level values
     clear();
 
-    // Get the event weights (for cutflow & histograms)
-    initialize_weights();
-    cma::DEBUG("EVENT : Setup weights ");
-
-    // Filters
-    initialize_filters();
-
-    // Triggers
-    initialize_triggers();
+    // Large-R Jets
+    initialize_ljets();
+    cma::DEBUG("EVENT : Setup large-R jets ");
 
     // Truth Information
-    if (m_useTruth){
+    if (m_isMC){
         initialize_truth();
         cma::DEBUG("EVENT : Setup truth information ");
     }
+    else{
+        // Filters
+        initialize_filters();
 
-    // Jets
-    if (m_useJets){
+        // Triggers
+        initialize_triggers();
+
+        // Jets
         initialize_jets();
         cma::DEBUG("EVENT : Setup small-R jets ");
-    }
 
-    // Leptons
-    if (m_useLeptons){
+        // Leptons
         initialize_leptons();
         cma::DEBUG("EVENT : Setup leptons ");
-    }
 
-    // Large-R Jets
-    if (m_useLargeRJets){
-        initialize_ljets();
-        cma::DEBUG("EVENT : Setup large-R jets ");
-    }
+        // Get some kinematic variables (MET, HT, ST)
+        initialize_kinematics();
+        cma::DEBUG("EVENT : Setup kinematic variables ");
 
-    // Get some kinematic variables (MET, HT, ST)
-    initialize_kinematics();
-    cma::DEBUG("EVENT : Setup kinematic variables ");
+        // Neutrinos
+        initialize_neutrinos();
+        cma::DEBUG("EVENT : Setup neutrinos ");
 
-
-    // Kinematic reconstruction (if they values aren't in the root file)
-    m_ttbar0L = {};
-    m_ttbar1L = {};
-    m_ttbar2L = {};
-    if (m_kinematicReco) ttbarReconstruction();
-    else{
-        Jet dummy_jet;
-        Ljet dummy_ljet;
-        Lepton dummy_lep;
-
-        if (m_isOneLeptonAnalysis){
-            int ljetidx = **m_hadtop_ljet;
-            int jetidx  = **m_leptop_jet;
-            m_ttbar1L.jet  = (jetidx>=0)  ? m_jets.at(jetidx)   : dummy_jet;
-            m_ttbar1L.ljet = (ljetidx>=0) ? m_ljets.at(ljetidx) : dummy_ljet;
-
-            if (m_muons.size()>0)
-                m_ttbar1L.lepton = m_muons.at(0);
-            else if (m_electrons.size()>0)
-                m_ttbar1L.lepton = m_electrons.at(0);
-            else if (m_muons.size()+m_electrons.size() == 0)
-                m_ttbar1L.lepton = dummy_lep;
-        }
+        // Kinematic reconstruction (if they values aren't in the root file)
+        m_ttbar1L = {};
+        if (m_kinematicReco) ttbarReconstruction();
     }
 
     cma::DEBUG("EVENT : Setup Event ");
@@ -394,10 +294,9 @@ void Event::execute(Long64_t entry){
 
 void Event::ttbarReconstruction(){
     /* Reconstruct ttbar system -- after event selection! */
-    m_ttbar0L = {};
     m_ttbar1L = {};
-    m_ttbar2L = {};
-
+    m_ttbarRecoTool->execute(m_leptons,m_neutrinos,m_jets,m_ljets);
+    m_ttbar1L = m_ttbarRecoTool->ttbar1L();
     return;
 }
 
@@ -720,7 +619,8 @@ void Event::initialize_ljets(){
         idx++;
     }
 
-    deepLearningPrediction();   // store features in map (easily access later)
+    if (m_DNNinference)
+        deepLearningPrediction();   // store features in map (easily access later)
 
     return;
 }
@@ -796,22 +696,23 @@ void Event::initialize_leptons(){
 }
 
 
+void Event::initialize_neutrinos(){
+    /* Build the neutrinos */
+    m_neutrinos.clear();
 
-void Event::initialize_weights(){
-    /* Event weights */
-    m_nominal_weight = 1.0;
+    Neutrino nu1;
+    nu1.p4.SetPtEtaPhiM( m_met.p4.Pt(), 0, m_met.p4.Phi(), 0);   // "dummy"; pz=0
 
-    m_weight_btag.clear();
-    if (m_isMC){
-        m_nominal_weight  = 1.0; //(**m_weight_pileup) * (**m_weight_mc);
-        m_nominal_weight *= (m_xsection) * (m_kfactor) * m_LUMI / (m_sumOfWeights);
-/*      // event weights
-        m_weight_btag["70"] = (**m_weight_btag_70);
-        m_weight_btag["77"] = (**m_weight_btag_77);
-        m_weight_btag_default = m_weight_btag[m_config->jet_btagWkpt()];
-        m_nominal_weight *= m_weight_btag_default;
-*/
+    if (m_leptons.size()<1){
+        // not enough leptons to do reconstruction, so just create dummy value
+        m_neutrinos.push_back(nu1);
+        return;
     }
+
+    m_neutrinoRecoTool->setObjects(m_leptons.at(0),m_met);
+    // reconstruct neutrinos!
+    nu1 = m_neutrinoRecoTool->execute();        // tool assumes 1-lepton final state
+    m_neutrinos.push_back(nu1);
 
     return;
 }
@@ -826,17 +727,9 @@ void Event::initialize_kinematics(){
     m_ST = 0.0;
 
     // Get hadronic transverse energy
-    if (m_useJets){
-        // include small-R jet pT
-        for (auto &small_jet : m_jets ){
-            m_HT += small_jet.p4.Pt();
-        }
-    }
-    else{
-        // include large-R jet pT
-        for (auto &large_jet : m_ljets){
-            m_HT += large_jet.p4.Pt();
-        }
+    // include small-R jet pT
+    for (auto &small_jet : m_jets ){
+        m_HT += small_jet.p4.Pt();
     }
 
     // set MET
@@ -897,7 +790,6 @@ bool Event::customIsolation( Lepton& lep ){
 }
 
 
-/*** GETTER FUNCTIONS ***/
 void Event::getBtaggedJets( Jet& jet ){
     /* Determine the b-tagging */
     jet.isbtagged["L"] = false;
@@ -921,50 +813,6 @@ void Event::getBtaggedJets( Jet& jet ){
 }
 
 
-double Event::getSystEventWeight( const std::string &syst, const int weightIndex ){
-    /* Calculate the event weight given some systematic
-       -- only call for nominal events and systematic weights
-       -- for non-nominal tree systematics, use the nominal event weight
-
-       @param syst          Name of systematic (nominal or some weight systematic)
-       @param weightIndex   Index of btagging SF; default to -1
-    */
-    double syst_event_weight(1.0);
-
-    if (syst.compare("nominal")==0){
-        // nominal event weight
-        syst_event_weight  = m_nominal_weight;
-    }
-/*    else if (syst.find("leptonSF")!=std::string::npos){
-        // leptonSF event weight
-        syst_event_weight  = (**m_weight_pileup) * (**m_weight_mc);
-        syst_event_weight *= m_weight_btag_default;
-        syst_event_weight *= (m_xsection) * (m_kfactor) * (m_LUMI);
-        syst_event_weight /= (m_sumOfWeights);
-
-        syst_event_weight *= **m_weightSystematicsFloats.at(syst);
-    }
-    else if (syst.find("bTagSF")!=std::string::npos){
-        // bTagSF event weight -- check indices for eigenvector systematics
-        syst_event_weight  = (**m_weight_pileup) * (**m_weight_mc);
-        syst_event_weight *= (m_xsection) * (m_kfactor) * (m_LUMI);
-        syst_event_weight /= (m_sumOfWeights);
-    }
-    else{
-        // safety to catch something weird -- just return 1.0
-        cma::WARNING("EVENT : Passed systematic variation, "+syst+", to Event::getSystEventWeight() ");
-        cma::WARNING("EVENT : that is inconsistent with the cheetah options of ");
-        cma::WARNING("EVENT :     nominal, jvt, pileup, leptonSF, and bTagSF. ");
-        cma::WARNING("EVENT : Returning a weight of 1.0. ");
-        syst_event_weight = 1.0;
-    }
-*/
-    return syst_event_weight;
-}
-
-
-
-
 /*** RETURN PHYSICS INFORMATION ***/
 std::vector<int> Event::btag_jets(const std::string &wkpt) const{
     /* Small-R Jet b-tagging */
@@ -979,63 +827,10 @@ std::vector<int> Event::btag_jets(const std::string &wkpt) const{
 
 void Event::deepLearningPrediction(){
     /* Deep learning for large-R jets -- CWoLa */
-    if (m_DNNinference){
-        cma::DEBUG("EVENT : Calculate DNN ");
-        m_deepLearningTool->inference(m_ljets);     // decorate the ljet with DNN values
-    }
-    else if (m_DNNtraining){
-        for (auto& ljet : m_ljets){
-            m_deepLearningTool->training(ljet);
-            ljet.features = m_deepLearningTool->features();  // store the features on the ljet to make easily accessible later
-        }
-    }
+    cma::DEBUG("EVENT : Calculate DNN ");
+    m_cheetahTool->inference(m_ljets);     // decorate the ljet with DNN values
 
     return;
-}
-
-
-/*** RETURN WEIGHTS ***/
-float Event::weight_mc(){
-    return 1.0; //**m_weight_mc;
-}
-float Event::weight_pileup(){
-    return 1.0; //**m_weight_pileup;
-}
-
-float Event::weight_btag(const std::string &wkpt){
-    std::string tmp_wkpt(wkpt);
-    if(m_weight_btag.find(wkpt) == m_weight_btag.end()){
-        cma::WARNING("EVENT : B-tagging working point "+wkpt+" does not exist");
-        cma::WARNING("EVENT : Return calo-jet b-tag SF for default working point "+m_config->jet_btagWkpt());
-        tmp_wkpt = m_config->jet_btagWkpt();
-    }
-    return m_weight_btag[tmp_wkpt];
-}
-
-float Event::weight_btag(){
-    /* Default b-tag weight */
-    return m_weight_btag_default;
-}
-
-// Get weight systematics
-std::map<std::string,float> Event::weightSystematicsFloats(){
-    /* systematics floats */
-    std::map<std::string,float> tmp_weightSystematicsFloats;
-    for (const auto& wsf : m_weightSystematicsFloats)
-        tmp_weightSystematicsFloats[wsf.first] = **wsf.second;
-
-    return tmp_weightSystematicsFloats;
-}
-
-std::map<std::string,std::vector<float> > Event::weightSystematicsVectorFloats(){
-    /* weight systematics stored as vectors */
-    std::map<std::string,std::vector<float> > tmp_weightSystematicsVectorFloats;
-    return tmp_weightSystematicsVectorFloats;
-}
-
-std::vector<std::string> Event::listOfWeightSystematics(){
-    /* list of weight systematics */
-    return m_listOfWeightSystematics;
 }
 
 
@@ -1048,7 +843,39 @@ void Event::finalize(){
     delete m_runNumber;
     delete m_lumiblock;
 
-    if (m_useJets){
+    delete m_ljet_pt;
+    delete m_ljet_eta;
+    delete m_ljet_phi;
+    delete m_ljet_m;
+    delete m_ljet_tau1;
+    delete m_ljet_tau2;
+    delete m_ljet_tau3;
+    delete m_ljet_charge;
+    delete m_ljet_SDmass;
+    delete m_ljet_subjet0_charge;
+    delete m_ljet_subjet0_bdisc;
+    delete m_ljet_subjet0_deepCSV;
+    delete m_ljet_subjet0_pt;
+    delete m_ljet_subjet0_mass;
+    delete m_ljet_subjet1_charge;
+    delete m_ljet_subjet1_bdisc;
+    delete m_ljet_subjet1_deepCSV;
+    delete m_ljet_subjet1_pt;
+    delete m_ljet_subjet1_mass;
+    delete m_ljet_area;
+    delete m_ljet_uncorrPt;
+    delete m_ljet_uncorrE;
+
+    if (m_isMC){
+      delete m_mc_pt;
+      delete m_mc_eta;
+      delete m_mc_phi;
+      delete m_mc_e;
+      delete m_mc_pdgId;
+      delete m_mc_status;
+      delete m_mc_isHadTop;
+    }
+    else{
       delete m_jet_pt;
       delete m_jet_eta;
       delete m_jet_phi;
@@ -1058,34 +885,7 @@ void Event::finalize(){
       delete m_jet_area;
       delete m_jet_uncorrPt;
       delete m_jet_uncorrE;
-    }
 
-    if (m_useLargeRJets){
-      delete m_ljet_pt;
-      delete m_ljet_eta;
-      delete m_ljet_phi;
-      delete m_ljet_m;
-      delete m_ljet_tau1;
-      delete m_ljet_tau2;
-      delete m_ljet_tau3;
-      delete m_ljet_charge;
-      delete m_ljet_SDmass;
-      delete m_ljet_subjet0_charge;
-      delete m_ljet_subjet0_bdisc;
-      delete m_ljet_subjet0_deepCSV;
-      delete m_ljet_subjet0_pt;
-      delete m_ljet_subjet0_mass;
-      delete m_ljet_subjet1_charge;
-      delete m_ljet_subjet1_bdisc;
-      delete m_ljet_subjet1_deepCSV;
-      delete m_ljet_subjet1_pt;
-      delete m_ljet_subjet1_mass;
-      delete m_ljet_area;
-      delete m_ljet_uncorrPt;
-      delete m_ljet_uncorrE;
-    }
-
-    if (m_useLeptons){
       delete m_el_pt;
       delete m_el_eta;
       delete m_el_phi;
@@ -1108,66 +908,29 @@ void Event::finalize(){
       delete m_mu_id_loose;
       delete m_mu_id_medium;
       delete m_mu_id_tight;
+      delete m_met_met;
+      delete m_met_phi;
+      delete m_HTAK8;
+      delete m_HTAK4;
+
+      delete m_HLT_Ele45_CaloIdVT_GsfTrkIdT_PFJet200_PFJet50;
+      delete m_HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165;
+      delete m_HLT_Ele115_CaloIdVT_GsfTrkIdT;
+      delete m_HLT_Mu40_Eta2P1_PFJet200_PFJet50;
+      delete m_HLT_Mu50;
+      delete m_HLT_PFHT800;
+      delete m_HLT_PFHT900;
+      delete m_HLT_AK8PFJet450;
+      delete m_HLT_PFHT700TrimMass50;
+      delete m_HLT_PFJet360TrimMass30;
+
+      delete m_Flag_goodVertices;
+      delete m_Flag_eeBadScFilter;
+      delete m_Flag_HBHENoiseFilter;
+      delete m_Flag_HBHENoiseIsoFilter;
+      delete m_Flag_globalTightHalo2016Filter;
+      delete m_Flag_EcalDeadCellTriggerPrimitiveFilter;
     }
-
-    delete m_met_met;
-    delete m_met_phi;
-    delete m_HTAK8;
-    delete m_HTAK4;
-
-    delete m_HLT_Ele45_CaloIdVT_GsfTrkIdT_PFJet200_PFJet50;
-    delete m_HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165;
-    delete m_HLT_Ele115_CaloIdVT_GsfTrkIdT;
-    delete m_HLT_Mu40_Eta2P1_PFJet200_PFJet50;
-    delete m_HLT_Mu50;
-    delete m_HLT_PFHT800;
-    delete m_HLT_PFHT900;
-    delete m_HLT_AK8PFJet450;
-    delete m_HLT_PFHT700TrimMass50;
-    delete m_HLT_PFJet360TrimMass30;
-
-    delete m_Flag_goodVertices;
-    delete m_Flag_eeBadScFilter;
-    delete m_Flag_HBHENoiseFilter;
-    delete m_Flag_HBHENoiseIsoFilter;
-    delete m_Flag_globalTightHalo2016Filter;
-    delete m_Flag_EcalDeadCellTriggerPrimitiveFilter;
-
-    if (m_isMC){
-      if (m_config->isTtbar()){
-        delete m_mc_pt;
-        delete m_mc_eta;
-        delete m_mc_phi;
-        delete m_mc_e;
-        delete m_mc_pdgId;
-        delete m_mc_status;
-        delete m_mc_isHadTop;
-      }
-/*
-        delete m_weight_mc;
-        delete m_weight_pileup;
-        delete m_weight_pileup_UP;
-        delete m_weight_pileup_DOWN;
-
-        delete m_mc_ht;
-
-        delete m_truth_jet_pt;
-        delete m_truth_jet_eta;
-        delete m_truth_jet_phi;
-        delete m_truth_jet_e;
-
-        delete m_truth_ljet_pt;
-        delete m_truth_ljet_eta;
-        delete m_truth_ljet_phi;
-        delete m_truth_ljet_m;
-        delete m_truth_ljet_charge;
-        delete m_truth_ljet_subjet0_charge;
-        delete m_truth_ljet_subjet0_bdisc;
-        delete m_truth_ljet_subjet1_charge;
-        delete m_truth_ljet_subjet1_bdisc;
-*/
-    } // end isMC
-
     return;
 }
 

@@ -11,7 +11,7 @@ Make histograms for systematic uncertainties (& nominal)
 to go into plots || TRexFitter
 
 */
-#include "Analysis/cheetah/interface/histogrammerBase.h"
+#include "Analysis/CyMiniAna/interface/histogrammerBase.h"
 
 
 histogrammerBase::histogrammerBase( configuration& cmaConfig, std::string name ) :
@@ -21,6 +21,7 @@ histogrammerBase::histogrammerBase( configuration& cmaConfig, std::string name )
   m_putUnderflowInFirstBin(true){
     m_map_histograms1D.clear();
     m_map_histograms2D.clear();
+    m_map_histograms3D.clear();
 
     if (m_name.length()>0  && m_name.substr(m_name.length()-1,1).compare("_")!=0)
         m_name = m_name+"_"; // add '_' to end of string, if needed
@@ -65,6 +66,27 @@ void histogrammerBase::init_hist( const std::string& name, const unsigned int nB
 
     return;
 }
+// -- 3D Histograms
+void histogrammerBase::init_hist( const std::string& name, const unsigned int nBinsX, const double x_min, const double x_max,
+                              const unsigned int nBinsY, const double y_min, const double y_max,
+                              const unsigned int nBinsZ, const double z_min, const double z_max ){
+    /* Initialize histogram -- equal bins */
+    m_map_histograms3D["h_"+name] = new TH3D(("h_"+name).c_str(), ("h_"+name).c_str(),
+                                            nBinsX,x_min,x_max,nBinsY,y_min,y_max,nBinsZ,z_min,z_max);
+    m_map_histograms3D["h_"+name]->Sumw2();
+
+    return;
+}
+void histogrammerBase::init_hist( const std::string& name, const unsigned int nBinsX, const double *xbins,
+                              const unsigned int nBinsY, const double *ybins,
+                              const unsigned int nBinsZ, const double *zbins ){
+    /* Initialize histogram -- variable bins */
+    m_map_histograms3D["h_"+name] = new TH3D(("h_"+name).c_str(), ("h_"+name).c_str(),
+                                           nBinsX,xbins,nBinsY,ybins,nBinsZ,zbins);
+    m_map_histograms3D["h_"+name]->Sumw2();
+
+    return;
+}
 
 
 /**** FILL HISTOGRAMS ****/
@@ -91,6 +113,19 @@ void histogrammerBase::fill( const std::string& name,
 
     TH2D* this_hist = m_map_histograms2D.at("h_"+name);
     this_hist->Fill(xvalue,yvalue,weight);
+
+    return;
+}
+void histogrammerBase::fill( const std::string& name, 
+                         const double& xvalue, const double& yvalue, const double& zvalue, const double& weight ){
+    /* TH3D */
+    if (!m_map_histograms3D.count("h_"+name)){
+        cma::ERROR("HISTOGRAMMERBASE : Filling 3D histogram with key '"+name+"': KEY DOES NOT EXIST");
+        cma::ERROR("HISTOGRAMMERBASE : Please check 'init_hist' and 'fill' functions");
+    }
+
+    TH3D* this_hist = m_map_histograms3D.at("h_"+name);
+    this_hist->Fill(xvalue,yvalue,zvalue,weight);
 
     return;
 }

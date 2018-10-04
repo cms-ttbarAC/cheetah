@@ -42,19 +42,11 @@ namespace cma{
     void getListOfBranches( TTree* tree, std::vector<std::string>& treeBranches );
     void getListOfKeys( TFile* file, std::vector<std::string> &fileKeys );
 
-    /* calculate values for normalizing monte carlo samples */
-    void getSampleWeights( std::string metadata_file,
-                           std::map<std::string,Sample>& samples);
-
     /* Convert string to boolean */
     bool str2bool( const std::string value );
 
     /* Convert vector of strings into a string of comma-separated elements */
     std::string vectorToStr( const std::vector<std::string> &vec );
-
-    /* Random seed for dilepton ttbar reconstruction */
-    unsigned int setRandomNumberSeeds(const Lepton& lepton, const Lepton& antiLepton, 
-                                      const Jet& jet1, const Jet& jet2);
 
     /* DeltaR matching of TLorentzVectors (default deltaR=0.75) */
     bool deltaRMatch( const TLorentzVector &particle1, const TLorentzVector &particle2, const double deltaR=0.75 );
