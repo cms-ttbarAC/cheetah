@@ -23,7 +23,7 @@ Recommended Use:
   - If you just have one region to define, do not pass an
     argument for 'level' and use 'm_selection' to define the cuts
 */
-#include "Analysis/CyMiniAna/interface/eventSelection.h"
+#include "Analysis/cheetah/interface/eventSelection.h"
 
 
 eventSelection::eventSelection(configuration &cmaConfig, const std::string &level) :
@@ -32,12 +32,7 @@ eventSelection::eventSelection(configuration &cmaConfig, const std::string &leve
   m_selection("SetMe"),
   m_cutsfile("SetMe"),
   m_numberOfCuts(0),
-  m_dummySelection(false),
-  m_isZeroLeptonAnalysis(false),
-  m_isOneLeptonAnalysis(false),
-  m_isTwoLeptonAnalysis(false),
-  m_isCWoLaAnalysis(false),
-  m_allHadDNNSelection(false){
+  m_dummySelection(false){
     m_cuts.resize(0);
     m_cutflowNames.clear();
   }
@@ -49,10 +44,8 @@ void eventSelection::initialize(const std::string& selection, const std::string&
     m_selection = selection;
     m_cutsfile  = cutsfile;
 
-    m_zeroLeptonTriggers = m_config->zeroLeptonTriggers();
     m_ejetsTriggers      = m_config->ejetsTriggers();
     m_mujetsTriggers     = m_config->mujetsTriggers();
-    m_dileptonTriggers   = m_config->dileptonTriggers();
 
     initialize( m_cutsfile );
 
@@ -94,19 +87,11 @@ void eventSelection::initialize(const std::string &cutsfile) {
 
 void eventSelection::identifySelection(){
     /* Set the booleans for applying the selection below */
-    m_dummySelection       = m_selection.compare("none")==0;          // no selection
-
-    // DNN cuts -- for preparing DNN ntuples/histograms/etc.
-    m_allHadDNNSelection   = m_selection.compare("allHadDNN")==0;     // setup for all-had DNN
-
-    // Analysis cuts :: all-had, l+jets, dilepton
-    m_isZeroLeptonAnalysis = m_selection.compare("allhad")==0;
-    m_isOneLeptonAnalysis  = (m_selection.compare("ejets")==0 || m_selection.compare("mujets")==0 || m_selection.compare("ljets")==0);
-    m_isTwoLeptonAnalysis  = m_selection.compare("dilepton")==0;
-
-    m_isCWoLaAnalysis = m_selection.compare("cwola")==0 || m_selection.compare("cwolaejets")==0 || m_selection.compare("cwolamujets")==0;
-    m_isAFBAnalysis   = m_selection.compare("afb")==0;
-
+    m_dummySelection  = m_selection.compare("none")==0;            // no selection
+    m_mcDNNSelection  = m_selection.compare("mcDNN")==0;           // setup for all-had DNN
+    m_isCWoLaAnalysis = m_selection.compare("cwola")==0	     ||
+                        m_selection.compare("cwolaejets")==0 ||
+                        m_selection.compare("cwolamujets")==0;     // setup for CWoLa (data selection)
     return;
 }
 
@@ -153,7 +138,7 @@ void eventSelection::setObjects(const Event& event) {
     // set physics objects
     m_jets  = event.jets();
     m_ljets = event.ljets();
-    m_leptons = event.leptons();
+    m_leptons = event.leptons();       // contains electrons and muons
     //m_muons = event.muons();
     //m_electrons = event.electrons();
     m_neutrinos = event.neutrinos();
@@ -178,9 +163,7 @@ void eventSelection::setObjects(const Event& event) {
     }
 
     // ttbar system(s)
-    m_ttbar0L = event.ttbar0L();
     m_ttbar1L = event.ttbar1L();
-    m_ttbar2L = event.ttbar2L();
 
     return;
 }
@@ -226,43 +209,21 @@ bool eventSelection::applySelection() {
     if (!passFilter) return false;
     fillCutflows(cf_bin);
 
+    // -- All-hadronic DNN
+    if (m_mcDNNSelection)
+        passSelection = mcDNNSelection(cf_bin);
 
-    // -- All-hadronic DNN 
-    if (m_allHadDNNSelection)
-        passSelection = allHadDNNSelection(cf_bin);
-
-    // -- All-hadronic analysis
-    else if (m_isZeroLeptonAnalysis){
-        passSelection = zeroLeptonSelection(cf_bin);
-    }
-
-    // -- Single lepton analyses
-    else if (m_isOneLeptonAnalysis){
-        // Standard 1-lepton selection
-        passSelection = (m_selection.compare("ejets")==0) ? ejetsSelection(cf_bin) : mujetsSelection(cf_bin);
-    }
-    else if (m_isCWoLaAnalysis){
-        // inputs to CWoLa
+    // -- preparing inputs for CWoLa
+    else if (m_isCWoLaAnalysis)
         passSelection = cwolaSelection(cf_bin);
-    }
-    else if (m_isAFBAnalysis){
-        // mimc the AFB analysis as a cross-check
-        passSelection = afbSelection(cf_bin);
-    }
-
-    // -- Dilepton analysis
-    else if (m_isTwoLeptonAnalysis){
-        passSelection = twoLeptonSelection(cf_bin);
-    }
 
     return passSelection;
 }
 
 
 // ******************************************************* //
-
 // Put selections in functions (allow other selections to call them!)
-bool eventSelection::allHadDNNSelection(float& cutflow_bin){
+bool eventSelection::mcDNNSelection(float& cutflow_bin){
     /* Check if event passes selection */
     bool pass(false);
 
@@ -270,47 +231,11 @@ bool eventSelection::allHadDNNSelection(float& cutflow_bin){
     if ( m_NLjets<2 )     // m_ljets.size()<2
         pass = false;
     else{
-        fillCutflows(cutflow_bin);
+	fillCutflows(cutflow_bin);
         pass = true;
     }
 
-    // truth information?
-
-    return pass;
-}
-
-
-// ******************************************************* //
-bool eventSelection::zeroLeptonSelection(float& cutflow_bin){
-    /* Check if event passes selection */
-    bool pass(false);
-
-    // cut0 :: triggers
-    unsigned int passTrig(0);
-    for (const auto& trig : m_zeroLeptonTriggers){
-        if (m_triggers.at(trig)) passTrig++;
-    }
-
-    if (passTrig<1)
-        return false;
-    else{
-        fillCutflows(cutflow_bin);
-        pass = true;
-    }
-
-
-    // cut1 :: No leptons
-    if ( m_NLeptons>0 )    // m_NElectrons+m_NMuons
-        return false;      // exit the function now; no need to test other cuts!
-    else{
-        fillCutflows(cutflow_bin);
-        pass = true;
-    }
-
-    // cut2 :: >=2 ljets  (same as allHadDNN for now)
-    pass = allHadDNNSelection(cutflow_bin);        // increment the cutflow bin
-
-    // b-tagging cuts? others?
+    // truth information? truth matching?
 
     return pass;
 }
@@ -318,103 +243,15 @@ bool eventSelection::zeroLeptonSelection(float& cutflow_bin){
 
 
 // ******************************************************* //
-bool eventSelection::afbSelection(float& cutflow_bin){
-    /* Forward-backward asymmetry selection (cross-check of framework) */
-    /**** PRE SELECTION ****/
-    // cut0 :: >=1 One lepton
-    if (m_NLeptons==0)
-        return false;          // exit the function now; no need to test other cuts!
-    else
-        fillCutflows(cutflow_bin);
-
-
-    // cut1 :: >=1 top tags
-    unsigned int n_toptags(0);
-    for (const auto& ljet : m_ljets) {
-        if (ljet.tau32 < 0.80 && 105<ljet.softDropMass && ljet.softDropMass<220.)
-            n_toptags++;
-    }
-
-    if ( n_toptags < 1 )
-        return false;  // exit the function now; no need to test other cuts!
-    else
-        fillCutflows(cutflow_bin);
-
-
-    // cut2 :: Minimal AK4 kinematics
-    if ( m_jets.size() < 1 )
-        return false;  // exit the function now; no need to test other cuts!
-    else
-        fillCutflows(cutflow_bin);
-
-
-    /**** REGULAR SELECTION ****/
-    // cut3 :: One lepton (kinematics only)
-    if (m_NMuons!=1 || m_NElectrons>0)
-        return false;          // exit the function now; no need to test other cuts!
-    else
-        fillCutflows(cutflow_bin);
-
-
-    // cut4 :: 2D isolation
-    Lepton lep = m_leptons.at(0);
-    if ( !lep.iso ) 
-        return false;
-    else
-        fillCutflows(cutflow_bin);
-
-
-    // cut5 :: triggers -- ejets is lepton==electron else mujets
-    unsigned int passTrig(0);
-    for (const auto& trig : m_mujetsTriggers){
-        if (m_triggers.at(trig)) passTrig++;
-    }
-
-    if (passTrig<1)
-        return false;
-    else
-        fillCutflows(cutflow_bin);
-
-
-    // cut6 :: >=2 jets (should have 1 AK4 near lepton & 1 AK4 inside the AK8)
-    if ( m_NJets < 2 )
-        return false;  // exit the function now; no need to test other cuts!
-    else
-        fillCutflows(cutflow_bin);
-
-
-    // cut7 :: leading AK4 pT>150; sub-leading AK4 pT>50
-    if ( m_jets.at(0).p4.Pt() < 150. || m_jets.at(1).p4.Pt() < 50.)
-        return false;  // exit the function now; no need to test other cuts!
-    else
-        fillCutflows(cutflow_bin);
-
-
-    // cut8 :: >= 1 b-tags
-    if ( m_Nbtags<1 )
-        return false;
-    else
-        fillCutflows(cutflow_bin);
-
-
-    // cut9 :: MET > 50 GeV
-    if ( m_met.p4.Pt() < 50 )
-        return false;
-    else
-        fillCutflows(cutflow_bin);
-
-    return true;
-}
-
-
 bool eventSelection::cwolaSelection(float& cutflow_bin){
     /* Check if event passes selection */
-    // Standard 1-lepton selection
     bool pass_basic(false);
+
+    // Standard 1-lepton selection
     if (m_selection.find("ejets")!=std::string::npos)
-        pass_basic = ejetsSelection(cutflow_bin,"ejets");
+        pass_basic = ejetsSelection(cutflow_bin);
     else
-        pass_basic = mujetsSelection(cutflow_bin,"mujets");
+        pass_basic = mujetsSelection(cutflow_bin);
 
     if (!pass_basic) 
         return false;
@@ -429,7 +266,7 @@ bool eventSelection::cwolaSelection(float& cutflow_bin){
         fillCutflows(cutflow_bin);
 
 
-    // cut1 :: BEST(top)>0.2
+    // cut1 :: BEST(top)>0.1
     Ljet hadtop_ak8 = m_ttbar1L.ljet;
     if ( hadtop_ak8.BEST_t<0.1 )
         return false;
@@ -572,38 +409,6 @@ bool eventSelection::oneLeptonSelection(float& cutflow_bin, std::string selectio
         return false;
     else
         fillCutflows(cutflow_bin);
-
-    return true;
-}
-
-
-
-// ******************************************************* //
-bool eventSelection::twoLeptonSelection(float& cutflow_bin){
-    /* Check if event passes selection */
-    // cut0 :: triggers
-    bool passTrig(true);
-    for (const auto& trig : m_dileptonTriggers)
-        if (!m_triggers.at(trig)) passTrig = false;
-
-    if (!passTrig)
-        return false;
-    else
-        fillCutflows(cutflow_bin);
-
-    // cut1 :: Two leptons
-    if ( m_NLeptons != 2 )  // m_NElectrons+m_NMuons
-        return false;       // exit the function now; no need to test other cuts!
-    else
-        fillCutflows(cutflow_bin);
-
-    // cut2 :: >=2 jets (2 b-jets)
-    if ( m_NJets < 2 )
-        return false;  // exit the function now; no need to test other cuts!
-    else
-        fillCutflows(cutflow_bin);
-
-    // dilepton/b-tagging/MET/DeltaPhi(MET,jets)/AK4 cuts? others?
 
     return true;
 }

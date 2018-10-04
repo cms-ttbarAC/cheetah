@@ -150,8 +150,8 @@ void miniTree::saveEvent(const std::map<std::string,double> features) {
 void miniTree::finalize(){
     /* Finalize the class -- fill in the metadata (only need to do this once!) */
     m_name    = m_config->primaryDataset();
-    m_nEvents = m_config->NTotalEvents();
-    m_target_value = (m_config->isQCD()) ? 0 : -1;    // multiple classes for signal, choose '-1'
+    m_nEvents = 1;
+    m_target_value = -1;
 
     cma::DEBUG("MINITREE : Fill the metadata tree");
     m_metadataTree->Fill();

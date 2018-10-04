@@ -18,9 +18,9 @@
 #include <unordered_set>
 #include <vector>
 
-#include "Analysis/cheetah/interface/Event.h"
 #include "Analysis/cheetah/interface/physicsObjects.h"
 #include "Analysis/cheetah/interface/configuration.h"
+#include "Analysis/cheetah/interface/Event.h"
 
 
 class miniTree {

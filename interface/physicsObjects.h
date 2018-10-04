@@ -175,14 +175,6 @@ struct MET : CmaBase{
 
 
 // Top Quark Definitions
-struct Ttbar0L : CmaBase{
-    // 2 FatJets
-    std::vector<Ljet> ljets;
-    Ljet top;     // top
-    Ljet antitop; // antitop
-
-    float dy;       // asymmetry : delta|y|
-};
 struct Ttbar1L : CmaBase{
     // 1 FatJet
     Ljet ljet;
@@ -194,116 +186,16 @@ struct Ttbar1L : CmaBase{
 
     float dy;       // asymmetry : delta|y|
 };
-struct Ttbar2L : CmaBase{
-    // 2 LepTops -- split by top/antitop (lepton charge)
-    Lepton lepton_t;
-    Neutrino neutrino_t;
-    Jet jet_t;
-    TLorentzVector top;
-
-    Lepton lepton_tbar;
-    Neutrino neutrino_tbar;
-    Jet jet_tbar;
-    TLorentzVector antitop;
-
-    float dy;     // asymmetry : delta|y|
-
-};
-
-// ************************************ //
-// dilepton ttbar System -- needs to be cleaned-up (21 March 2018)
-struct Top : CmaBase{
-    // Define a top quark
-    bool isTop;
-    bool isAntiTop;
-};
-
-struct LepTop : Top{
-    // Leptonically-decaying top quark aspects
-    Jet jet;
-    Lepton lepton;
-    Neutrino neutrino;
-
-    float weight;        // reconstruction weight
-    float weight_ES;     // reconstruction weight (EventShape)
-    float weight_tt;     // reconstruction weight (ttbar XS method)
-};
-
-struct DileptonReco {
-    // struct of information needed for neutrino reconstruction (AMWT)
-    Lepton lepton_pos;      // positively charged lepton
-    Lepton lepton_neg;      // negatively charged lepton
-    TVector2 met;           // MET (stored as TVector2 for convenience)
-    std::vector<Jet> jets;  // jets in event
-    std::vector<Jet> bjets; // two 'b'-jets in ttbar decay
-    Jet bJet;
-    Jet bbarJet;
-    size_t bJet_index, bbarJet_index;
-};
-
-struct TtbarDilepton : DileptonReco {
-    /* dilepton ttbar system for dileptonTtbarReco setup
-       formerly: Struct_KinematicReconstruction
-       incorporated some attributes of the "TopSolution" struct
-    */
-    Neutrino neutrino;
-    Neutrino neutrinoBar;
-
-    TLorentzVector Wplus;
-    TLorentzVector Wminus;
-
-    LepTop top;
-    LepTop topBar;
-    TLorentzVector ttbar;
-
-    double recMtop;     // top mass used in the reconstruction (needed if doing massLoop)
-    double weight;      // weight of the solution
-    int ntags;          // number of b-tags
-
-    double dR;
-    double dN;
-    double x1;
-    double x2;
-    double mtt;         // invariant mass of the ttbar system
-    bool isNoSmearSol;  // if smearing, this bool identifies solutions found w/o smearing
-
-    // Enumeration for all defined weights of a kinematic reconstruction solution
-    enum WeightType{defaultForMethod, neutrinoEnergy, averagedSumSmearings_mlb, undefinedWeight};
-    std::map<WeightType,double> mapOfWeights;
-
-    void set_ttbar(){
-        ttbar = top.p4 + topBar.p4;
-    }
-    void set_W(){
-        Wplus  = lepton_pos.p4 + neutrino.p4;
-        Wminus = lepton_neg.p4 + neutrinoBar.p4;
-    }
-};
-
-
 
 
 // ------------------------ // 
-struct Sample {
-    // Struct to contain sample information (processing the input file)
-    std::string inputFile;         // input file name
-    std::string sampleType;        // kind of sample, e.g., 'ttbar', 'qcd', 'signal', etc.
-    std::string primaryDataset;    // primary dataset (how to identify the sample & metadata)
-    float XSection;
-    float KFactor;
-    float sumOfWeights;
-    unsigned int NEvents;
-
-    void clear(){
-        inputFile  = "";
-        sampleType = "";
-        primaryDataset = "";
-        XSection = 1.;
-        KFactor  = 1.;
-        sumOfWeights = 1.;
-        NEvents = 0;
-    }
+// struct for holding information on a 'cut' in eventSelection
+//  ideally this could be extended so that cuts are parsed from a text file
+//  & coded automatically, without humans!
+struct Cut{
+    std::string name;       // name of cut
+    std::string comparison; // sign of cut (<,<=,>,>=,==,!=)
+    float value;            // float value -- cast to int if needed
 };
-
 
 #endif

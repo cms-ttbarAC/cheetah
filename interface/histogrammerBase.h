@@ -28,7 +28,7 @@ class histogrammerBase {
     // Default - so we can clean up;
     virtual ~histogrammerBase();
 
-    /* initialize histograms (1D & 2D) */
+    /* initialize histograms (1D, 2D, & 3D) */
     virtual void init_hist( const std::string& name, 
                                   const unsigned int nBins, const double x_min, const double x_max );
     virtual void init_hist( const std::string& name, 
@@ -40,10 +40,17 @@ class histogrammerBase {
     virtual void init_hist( const std::string& name, 
                                   const unsigned int nBinsX, const double *xbins,
                                   const unsigned int nBinsY, const double *ybins );
+    virtual void init_hist( const std::string& name, const unsigned int nBinsX, const double x_min, const double x_max,
+                              const unsigned int nBinsY, const double y_min, const double y_max,
+                              const unsigned int nBinsZ, const double z_min, const double z_max );
+    virtual void init_hist( const std::string& name, const unsigned int nBinsX, const double *xbins,
+                              const unsigned int nBinsY, const double *ybins,  
+                              const unsigned int nBinsZ, const double *zbins );
 
     /* fill histograms */
     virtual void fill( const std::string& name, const double& value, const double& weight );
     virtual void fill( const std::string& name, const double& xvalue, const double& yvalue, const double& weight );
+    virtual void fill( const std::string& name, const double& xvalue, const double& yvalue, const double& zvalue, const double& weight );
 
     /* Put over/underflow in last/first bins.  Called from outside macro */
     void overUnderFlow();
@@ -57,6 +64,7 @@ class histogrammerBase {
 
     std::map<std::string, TH1D*> m_map_histograms1D;
     std::map<std::string, TH2D*> m_map_histograms2D;
+    std::map<std::string, TH3D*> m_map_histograms3D;
 
     std::vector<std::string> m_names;
     bool m_putOverflowInLastBin;

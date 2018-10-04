@@ -11,7 +11,7 @@ University of Michigan, Ann Arbor, MI 48109
 Match reconstructed objects to truth objects
 
 */
-#include "Analysis/cheetah/interface/truthMatching.h"
+#include "Analysis/CyMiniAna/interface/truthMatching.h"
 
 
 truthMatching::truthMatching(configuration &cmaConfig) : 
@@ -117,4 +117,3 @@ void truthMatching::matchJetToTruthJet(Jet& jet, const std::vector<Jet>& truth_j
 }
 
 // THE END
-

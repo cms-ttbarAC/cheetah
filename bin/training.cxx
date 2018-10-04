@@ -34,11 +34,11 @@ Basic steering macro for running cheetah
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "Analysis/cheetah/interface/tools.h"
 #include "Analysis/cheetah/interface/configuration.h"
 #include "Analysis/cheetah/interface/Event.h"
 #include "Analysis/cheetah/interface/eventSelection.h"
 #include "Analysis/cheetah/interface/miniTree.h"
-#include "Analysis/cheetah/interface/tools.h"
 #include "Analysis/cheetah/interface/histogrammer.h"
 
 
@@ -79,36 +79,35 @@ int main(int argc, char** argv) {
     // --------------- //
     unsigned int numberOfFiles(filenames.size());
     unsigned int currentFileNumber(0);
-    cma::INFO("RUNML : *** Starting file loop *** ");
+    cma::INFO("TRAIN : *** Starting file loop *** ");
     for (const auto& filename : filenames) {
 
         ++currentFileNumber;
-        cma::INFO("RUNML :   Opening "+filename+"   ("+std::to_string(currentFileNumber)+"/"+std::to_string(numberOfFiles)+")");
+        cma::INFO("TRAIN :   Opening "+filename+"   ("+std::to_string(currentFileNumber)+"/"+std::to_string(numberOfFiles)+")");
 
         auto file = TFile::Open(filename.c_str());
         if (!file || file->IsZombie()){
-            cma::WARNING("RUNML :  -- File: "+filename);
-            cma::WARNING("RUNML :     does not exist or it is a Zombie. ");
-            cma::WARNING("RUNML :     Continuing to next file. ");
+            cma::WARNING("TRAIN :  -- File: "+filename);
+            cma::WARNING("TRAIN :     does not exist or it is a Zombie. ");
+            cma::WARNING("TRAIN :     Continuing to next file. ");
             continue;
         }
 
-        cma::DEBUG("RUNML : set file name and inspect ");
+        cma::DEBUG("TRAIN : set file name and inspect ");
         config.setFilename( filename );   // Use the filename to determine primary dataset and information about the sample
-//        config.inspectFile( *file );      // Determine information about the input file (metadata)
-//        Sample s = config.sample();       // load the Sample struct (xsection,kfactor,etc)
+        config.inspectFile( *file );      // Determine information about the input file (metadata)
 
-        cma::DEBUG("RUNML : get list of keys ");
+        cma::DEBUG("TRAIN : get list of keys ");
         std::vector<std::string> fileKeys;
         cma::getListOfKeys(file,fileKeys);      // keep track of ttrees in file
 
 
         // -- Output file -- //
-        cma::DEBUG("RUNML : setup output directory ");
+        cma::DEBUG("TRAIN : setup output directory ");
         struct stat dirBuffer;
         std::string outpath = outpathBase+"/"+selection+customDirectory;
         if ( !(stat((outpath).c_str(),&dirBuffer)==0 && S_ISDIR(dirBuffer.st_mode)) ){
-            cma::DEBUG("RUNML : Creating directory for storing output: "+outpath);
+            cma::DEBUG("TRAIN : Creating directory for storing output: "+outpath);
             system( ("mkdir "+outpath).c_str() );  // make the directory so the files are grouped together
         }
 
@@ -120,7 +119,7 @@ int main(int argc, char** argv) {
 
         std::string fullOutputFilename = outpath+"/"+outputFilename+".root";
         std::unique_ptr<TFile> outputFile(TFile::Open( fullOutputFilename.c_str(), "RECREATE"));
-        cma::INFO("RUNML :   >> Saving to "+fullOutputFilename);
+        cma::INFO("TRAIN :   >> Saving to "+fullOutputFilename);
 
         histogrammer histMaker(config,"ML");      // initialize histogrammer
         histMaker.initialize( *outputFile );
@@ -129,12 +128,12 @@ int main(int argc, char** argv) {
 
         // check that the ttree exists in this file before proceeding
         if (std::find(fileKeys.begin(), fileKeys.end(), treename) == fileKeys.end()){
-            cma::INFO("RUNML : TTree "+treename+" is not present in this file, continuing to next TTree");
+            cma::INFO("TRAIN : TTree "+treename+" is not present in this file, continuing to next TTree");
             continue;
         }
 
         // -- Load TTree to loop over
-        cma::INFO("RUNML :      TTree "+treename);
+        cma::INFO("TRAIN :      TTree "+treename);
         TTreeReader myReader(treename.c_str(), file);
 
         // -- Make new Tree in Root file
@@ -162,28 +161,28 @@ int main(int argc, char** argv) {
         while (myReader.Next()) {
 
             if (eventCounter+1 > numberOfEventsToRun){
-                cma::INFO("RUNML : Processed the desired number of events: "+std::to_string(eventCounter)+"/"+std::to_string(numberOfEventsToRun));
+                cma::INFO("TRAIN : Processed the desired number of events: "+std::to_string(eventCounter)+"/"+std::to_string(numberOfEventsToRun));
                 break;
             }
 
             if (entry%imod==0){
-                cma::INFO("RUNML :       Processing event "+std::to_string(entry) );
+                cma::INFO("TRAIN :       Processing event "+std::to_string(entry) );
                 if(imod<2e4) imod *=10;
             }
 
             // -- Build Event -- //
-            cma::DEBUG("RUNML : Execute event");
+            cma::DEBUG("TRAIN : Execute event");
             event.execute(entry);
             // now we have event object that has the event-level objects in it
             // pass this to the selection tools
 
             // -- Event Selection -- //
-            cma::DEBUG("RUNML : Apply event selection");
+            cma::DEBUG("TRAIN : Apply event selection");
             evtSel.setObjects(event);
             passEvent = evtSel.applySelection();
 
             if (passEvent){
-                cma::DEBUG("RUNML : Passed selection, now reconstruct ttbar & save information");
+                cma::DEBUG("TRAIN : Passed selection, now reconstruct ttbar & save information");
                 event.ttbarReconstruction();
 
                 // For ML, we are training on boosted top quarks in data!
@@ -237,8 +236,8 @@ int main(int argc, char** argv) {
         // put overflow/underflow content into the first and last bins
         histMaker.overUnderFlow();
 
-        cma::INFO("RUNML :   END Running  "+filename);
-        cma::INFO("RUNML :   >> Output at "+fullOutputFilename);
+        cma::INFO("TRAIN :   END Running  "+filename);
+        cma::INFO("TRAIN :   >> Output at "+fullOutputFilename);
 
         outputFile->Write();
         outputFile->Close();
@@ -248,8 +247,8 @@ int main(int argc, char** argv) {
         file = ((TFile *)0);  // (no errors for too many root files open)
     } // end file loop
 
-    cma::INFO("RUNML : *** End of file loop *** ");
-    cma::INFO("RUNML : Program finished. ");
+    cma::INFO("TRAIN : *** End of file loop *** ");
+    cma::INFO("TRAIN : Program finished. ");
 }
 
 // THE END

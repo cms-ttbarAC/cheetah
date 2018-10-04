@@ -8,9 +8,9 @@
 #include "lwtnn/lwtnn/interface/LightweightNeuralNetwork.hh"
 #include "lwtnn/lwtnn/interface/parse_json.hh"
 
-#include "Analysis/cheetah/interface/tools.h"
-#include "Analysis/cheetah/interface/configuration.h"
-#include "Analysis/cheetah/interface/physicsObjects.h"
+#include "Analysis/CyMiniAna/interface/tools.h"
+#include "Analysis/CyMiniAna/interface/configuration.h"
+#include "Analysis/CyMiniAna/interface/physicsObjects.h"
 
 
 class deepLearning {
