@@ -5,8 +5,8 @@ Classification of AK8 jets as either tops quarks or antiquarks using [CWoLa](htt
 
 ## Getting Started
 
-While this is a separate repository, many components depend on CyMiniAna, located in 
-[Analysis](https://github.com/cms-ttbarAC/Analysis) -- this is primarily to avoid code duplication.
+While this is a separate repository, many components mirror those CyMiniAna, located in 
+[Analysis](https://github.com/cms-ttbarAC/Analysis).
 It is recommened to checkout the Analysis repository and use this in the submodule capacity.
 
 # Questions or Comments
