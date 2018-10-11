@@ -19,7 +19,7 @@ where <batchConfig.txt> contains configuration options
 """
 import os
 import sys
-import util
+import utils
 import time
 import commands
 from batch.batchSubmission import BatchSubmission

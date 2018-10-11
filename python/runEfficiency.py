@@ -15,7 +15,7 @@ To run:
 """
 import sys
 import ROOT
-import util
+import utils
 from argparse import ArgumentParser
 
 from Analysis.CyMiniAna.hepPlotter.hepPlotter import HepPlotter
