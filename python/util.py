@@ -25,69 +25,6 @@ class Sample(object):
         self.primaryDataset = ""
 
 
-def getHistSeparation( S, B ):
-    """Compare TH1* S and B -- need same dimensions
-       Copied from : https://root.cern.ch/doc/master/MethodBase_8cxx_source.html#l02740
-    """
-    separation = 0
-
-    nstep  = S.GetNbinsX()
-    xaxis  = S.GetXaxis()
-
-    nS = S.GetSumOfWeights()
-    nB = B.GetSumOfWeights()
-    for bin in range(nstep):
-        s = S.GetBinContent( bin+1 )/nS
-        b = B.GetBinContent( bin+1 )/nB
-        if (s+b)>0: separation += (s - b)*(s - b)/(s + b)
-
-    separation *= 0.5
-
-    return separation
-
-
-def getSeparation2D( S, B ):
-    """Compare TH2* S and B -- need same dimensions"""
-    separation = 0
-
-    nbinsx = S.GetNbinsX()
-    xaxis  = S.GetXaxis()
-
-    nbinsy = S.GetNbinsY()
-    yaxis  = S.GetYaxis()
-
-    integral_s = S.Integral()
-    integral_b = B.Integral()
-
-    for x in range(nbinsx):
-        for y in range(nbinsy):
-            s = S.GetBinContent( x+1,y+1 )/integral_s
-            b = B.GetBinContent( x+1,y+1 )/integral_b
-
-            if (s+b) > 0: separation += (s - b)*(s - b)/(s + b)
-
-    separation *= 0.5
-
-    return separation
-
-
-
-def getSeparation(sig,bkg):
-    """Calculate separation between two distributions"""
-    separation = 0
-
-    nS = 1.0*np.sum(sig)
-    nB = 1.0*np.sum(bkg)
-    for ss,bb in zip(sig,bkg):
-        s = ss/nS
-        b = bb/nB
-        
-        if (s+b) > 0: separation += (s - b)*(s - b)/(s + b)
-    separation *= 0.5
-
-    return separation
-
-
 def read_config(filename,separation=" "):
     """
     Read configuration file with data stored like:
