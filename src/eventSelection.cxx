@@ -12,16 +12,6 @@ Event Selection script
 -----
 m_level        String passed to this class
 m_selection    Defined in configuration file
-
-Recommended Use:
-  - If you have a 'general' selection, e.g., "QCD", 
-    consisting of many regions (a la ABCD method),
-    set 'm_selection' to 'qcd' and make different instances
-    of 'eventSelection' for each region.
-    Then, level will represent each region ("A", "B", "C", "D").
-    You can make more descriptive names as well.
-  - If you just have one region to define, do not pass an
-    argument for 'level' and use 'm_selection' to define the cuts
 */
 #include "Analysis/cheetah/interface/eventSelection.h"
 
